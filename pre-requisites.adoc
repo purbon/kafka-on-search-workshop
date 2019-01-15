@@ -1,0 +1,5 @@
+= Pre-requisites for Search Engineering Workshop
+Pere Urbon <pere@confluent.io>
+v1.00
+
+TODO
