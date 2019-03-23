@@ -1,7 +1,5 @@
 package com.purbon.kafka.search;
 
-
-import com.purbon.kafka.search.serdes.JsonHybridDeserializer;
 import com.purbon.kafka.search.serdes.JsonPOJODeserializer;
 import com.purbon.kafka.search.serdes.JsonPOJOSerializer;
 import java.util.HashMap;
@@ -13,6 +11,10 @@ import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.common.serialization.Serializer;
 
 public class SerdesFactory {
+
+  public static <T> Serde<T> from(Class<T> clazz) {
+    return from(clazz, true);
+  }
 
   public static <T> Serde<T> from(Class<T> clazz, boolean isKey) {
     Map<String, Object> serdeProps = new HashMap<>();

@@ -1,7 +1,5 @@
 package com.purbon.kafka.search.models;
 
-import com.purbon.kafka.search.CustomerProfilesBuilder.InvoicesAggregatedTable;
-
 public class Customer {
 
   public int id;

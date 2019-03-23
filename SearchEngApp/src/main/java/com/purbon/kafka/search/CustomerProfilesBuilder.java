@@ -3,6 +3,7 @@ package com.purbon.kafka.search;
 import com.purbon.kafka.search.models.Customer;
 import com.purbon.kafka.search.models.DefaultId;
 import com.purbon.kafka.search.models.Invoice;
+import com.purbon.kafka.search.models.InvoicesAggregatedTable;
 import java.util.HashMap;
 import java.util.Properties;
 import org.apache.kafka.common.serialization.Serde;
@@ -56,65 +57,13 @@ public class CustomerProfilesBuilder {
     Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
   }
 
-  public static class InvoicesTotal {
-    public String invoiceNo;
-    public float totalValue;
-
-    public  InvoicesTotal() {
-      this("", 0);
-    }
-
-    public InvoicesTotal(String invoiceNo, float totalValue) {
-      this.invoiceNo = invoiceNo;
-      this.totalValue = totalValue;
-    }
-
-    @Override
-    public String toString() {
-      return ""+totalValue;
-    }
-  }
-
-  public static class InvoicesAggregatedTable {
-
-    public HashMap<String, Float> table;
-
-    public InvoicesAggregatedTable() {
-      table = new HashMap<>();
-    }
-
-    public void accountInvoice(String invoiceNo, float value) {
-      if (table.get(invoiceNo) == null) {
-        table.put(invoiceNo, 0f);
-      }
-      table.put(invoiceNo, table.get(invoiceNo)+value);
-    }
-
-    public String toString() {
-      StringBuilder sb = new StringBuilder();
-      sb.append("[ ");
-      int i = 0;
-      for(String invoiceNo : table.keySet()) {
-        if (i > 0) {
-          sb.append(" ");
-        }
-        sb.append("("+ invoiceNo+" -> ");
-        sb.append(table.get(invoiceNo));
-        sb.append(")");
-        i+=1;
-      }
-      sb.append("]");
-      return sb.toString();
-    }
-  }
-
   public static void main(String[] args) {
 
     StreamsBuilder builder = new StreamsBuilder();
 
-    final Serde<DefaultId> defaultIdSerde = SerdesFactory.from(DefaultId.class,true);
-    final Serde<Invoice> invoiceSerde = new CustomSerdeFactory<Invoice>().build(Invoice.class);
-    final Serde<InvoicesAggregatedTable> totalsSerde = new CustomSerdeFactory<InvoicesAggregatedTable>().build(InvoicesAggregatedTable.class);
+    final Serde<DefaultId> defaultIdSerde = SerdesFactory.from(DefaultId.class);
+    final Serde<Invoice> invoiceSerde = SerdesFactory.from(Invoice.class);
+    final Serde<InvoicesAggregatedTable> totalsSerde = SerdesFactory.from(InvoicesAggregatedTable.class);
 
     // Stream of invoices
     KStream<DefaultId, Invoice> invoicesKStream = builder.stream("asgard.demo.invoices",
