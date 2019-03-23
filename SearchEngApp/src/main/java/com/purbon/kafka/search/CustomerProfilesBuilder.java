@@ -4,7 +4,6 @@ import com.purbon.kafka.search.models.Customer;
 import com.purbon.kafka.search.models.DefaultId;
 import com.purbon.kafka.search.models.Invoice;
 import com.purbon.kafka.search.models.InvoicesAggregatedTable;
-import java.util.HashMap;
 import java.util.Properties;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
@@ -20,41 +19,11 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 
-public class CustomerProfilesBuilder {
+public class CustomerProfilesBuilder extends IngestPipeline {
+
 
   public CustomerProfilesBuilder() {
 
-  }
-
-  public static Properties config() {
-    return  config(null);
-  }
-
-  public static Properties config(Serde<Customer> serde) {
-
-    final Properties config = new Properties();
-    config.put(StreamsConfig.APPLICATION_ID_CONFIG, "search-pipeline");
-    config.put(StreamsConfig.CLIENT_ID_CONFIG, "customer-profile-builder");
-
-    config.put(StreamsConfig.BOOTSTRAP_SERVERS_CONFIG, "localhost:9092");
-    config.put(StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG, Serdes.String().getClass().getName());
-    config.put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, 100);
-    //config.put(StreamsConfig.PROCESSING_GUARANTEE_CONFIG, "exactly_once");
-    config.put(StreamsConfig.NUM_STREAM_THREADS_CONFIG, 4);
-
-    //config.put(ConsumerConfig.AUTO_OFFSET_RESET_CONFIG, "earliest");
-    return config;
-
-  }
-
-  public void run(Topology topology) {
-
-    final KafkaStreams streams = new KafkaStreams(topology, config());
-    streams.cleanUp();
-    streams.start();
-
-    // Add shutdown hook to respond to SIGTERM and gracefully close Kafka Streams
-    Runtime.getRuntime().addShutdownHook(new Thread(streams::close));
   }
 
   public static void main(String[] args) {
@@ -66,7 +35,7 @@ public class CustomerProfilesBuilder {
     final Serde<InvoicesAggregatedTable> totalsSerde = SerdesFactory.from(InvoicesAggregatedTable.class);
 
     // Stream of invoices
-    KStream<DefaultId, Invoice> invoicesKStream = builder.stream("asgard.demo.invoices",
+    KStream<DefaultId, Invoice> invoicesKStream = builder.stream(INVOICES_TOPIC,
         Consumed.with(defaultIdSerde, invoiceSerde));
 
     // group invoices by invoiceNo
@@ -94,11 +63,11 @@ public class CustomerProfilesBuilder {
     // output (UserId, List<(InvoiceNo, Float)>)
     // [KTABLE-TOSTREAM-0000000007]: 14849, [ (536463 -> 17.400002) (536466 -> 42.9) (536460 -> 295.53998)]
 
-  final Serde<Customer> customerSerde = new CustomSerdeFactory<Customer>().build(Customer.class);
+  final Serde<Customer> customerSerde = SerdesFactory.from(Customer.class);
 
   // pull the customer tables
     KTable<DefaultId, Customer> customersTable = builder
-        .table("asgard.demo.CUSTOMERS", Consumed.with(defaultIdSerde, customerSerde));
+        .table(CUSTOMERS_TOPIC, Consumed.with(defaultIdSerde, customerSerde));
 
     // KTable - KTable join customer with aggregated invoice totals
     customersTable
@@ -107,10 +76,10 @@ public class CustomerProfilesBuilder {
           return customer;
         }, Materialized.with(defaultIdSerde, customerSerde))
         .toStream()
-        .to("customers-profiles", Produced.with(defaultIdSerde, customerSerde));
+        .to(CUSTOMERS_PROFILES_TOPIC, Produced.with(defaultIdSerde, customerSerde));
 
     CustomerProfilesBuilder profilesApp = new CustomerProfilesBuilder();
-    profilesApp.run(builder.build());
+    profilesApp.run(builder.build(), "customer-profile-builder");
 
   }
 

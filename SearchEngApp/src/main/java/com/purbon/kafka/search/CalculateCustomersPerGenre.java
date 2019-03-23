@@ -60,14 +60,14 @@ public class CalculateCustomersPerGenre {
     final Serde<Customer> customerSerde = Serdes.serdeFrom(customerSerializer, customerDeserializer);
 
     KStream<String, Customer> customersKStream = builder
-        .stream("asgard.demo.CUSTOMERS",
+        .stream(IngestPipeline.CUSTOMERS_TOPIC,
             Consumed.with(Serdes.String(), customerSerde));
 
     customersKStream
         .groupBy((aString, customer) -> customer.gender, Grouped.with(Serdes.String(), customerSerde))
         .count()
         .toStream()
-        .to("consumers-per-gender", Produced.with(Serdes.String(), Serdes.Long()));
+        .to(IngestPipeline.CONSUMERS_PER_GENDER_TOPIC, Produced.with(Serdes.String(), Serdes.Long()));
 
     final KafkaStreams streams = new KafkaStreams(builder.build(), config());
     streams.cleanUp();
