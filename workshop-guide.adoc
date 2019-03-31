@@ -1,0 +1,132 @@
+= Workshop on Search Engineering with Apache Kafka, Kafka Connect and Kafka Streams (and KSQL?)
+:doctype: book
+:sectnums:
+Pere Urbon-Bayes <@purbon>
+v0.1, May 3, 2019
+
+:toc:
+
+== Introduction
+
+== Prerequisites
+
+IMPORTANT: These **MUST** be completed before the workshop!
+
+Please see link:pre-requisites.adoc[]
+
+== Start Confluent Platform
+
+_NOTE: Make sure that Docker has at least 8GB of memory available (check with `docker system info | grep Memory`)_
+
+Change the working directory:
+
+[source,bash]
+----
+cd kafka-on-search-workshop
+----
+
+Start Confluent Platform:
+
+[source,bash]
+----
+docker-compose up -d
+docker-compose logs -f kafka|grep "INFO Kafka version"
+----
+
+Once you see output then it means Kafka is running and you can proceed
+
+[source,bash]
+----
+$ docker-compose logs -f kafka|grep "INFO Kafka version"
+kafka_1             | [2018-09-03 14:08:09,790] INFO Kafka version : 2.0.0-cp1 (org.apache.kafka.common.utils.AppInfoParser)
+----
+
+Press Ctrl-C twice to exit the `docker-compose logs` command
+
+Run `docker-compose ps` to confirm that all components are running:
+
+[source,bash]
+----
+$ docker-compose ps
+Name                                  Command               State                          Ports
+-------------------------------------------------------------------------------------------------------------------------------------------
+kafka-on-search-workshop_connect-debezium_1   /docker-entrypoint.sh start      Up      0.0.0.0:8083->8083/tcp, 8778/tcp, 9092/tcp, 9779/tcp
+kafka-on-search-workshop_elasticsearch_1      /usr/local/bin/docker-entr ...   Up      0.0.0.0:9200->9200/tcp, 9300/tcp
+kafka-on-search-workshop_kafka-connect-cp_1   /etc/confluent/docker/run        Up      0.0.0.0:18083->18083/tcp, 8083/tcp, 9092/tcp
+kafka-on-search-workshop_kafka_1              /etc/confluent/docker/run        Up      0.0.0.0:9092->9092/tcp
+kafka-on-search-workshop_kibana_1             /usr/local/bin/kibana-docker     Up      0.0.0.0:5601->5601/tcp
+kafka-on-search-workshop_mysql_1              docker-entrypoint.sh mysqld      Up      0.0.0.0:3306->3306/tcp, 33060/tcp
+kafka-on-search-workshop_schema-registry_1    /etc/confluent/docker/run        Up      0.0.0.0:8081->8081/tcp
+kafka-on-search-workshop_zookeeper_1          /etc/confluent/docker/run        Up      2181/tcp, 2888/tcp, 3888/tcp
+----
+
+IMPORTANT: If any components do not show "Up" under the `State` column (e.g. they say "Exit") then you must rectify this before continuing. As a first solution, try re-issuing the `docker-compose up -d command`.
+
+
+== Understand your data
+
+### Database
+
+## Undestanding your Kafka architecture
+
+### CDC
+
+### Streams
+
+
+== Connectors
+
+### Setting up the connectors
+
+### Understanding the dataflow
+
+### SMT
+
+
+== Streams
+
+### Enriching data
+
+* Profile builder
+
+> total spends in invoices
+
+equivalent to:
+
+> select InvoiceNo, ROUND(sum(Quantity*UnitPrice),2) as total
+from invoices
+group by InvoiceNo;
+
+Key || Invoice Totals (InvoiceNo, Total)
+UsedId: 13448 | [ (536398 -> 426.55997) (536400 -> 17.400002)]
+
+
+> Flow
+
+1. Calculate Invoice total cost
+
+
+Target data example:
+
+UserId: 1
+Name: Pere
+Invoices:
+  * Id: 1, Total: 100
+  * Id: 3, Total: 300
+
+UserId: 2
+Name: Silvia
+Invoices:
+    * Id: 2, Total: 150
+    * Id: 4, Total: 200
+
+
+
+
+### Aggregating results
+
+TASKS:
+
+* Calculate customers grouped by gender
+
+### Windowing operations
