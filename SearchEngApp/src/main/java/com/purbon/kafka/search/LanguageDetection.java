@@ -1,7 +1,9 @@
 package com.purbon.kafka.search;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.purbon.kafka.search.models.Customer;
 import com.purbon.kafka.search.models.DefaultId;
+import com.purbon.kafka.search.models.Document;
 import com.purbon.kafka.search.models.Invoice;
 import com.purbon.kafka.search.models.InvoicesAggregatedTable;
 import com.sun.tools.internal.xjc.Language;
@@ -35,27 +37,28 @@ public class LanguageDetection extends IngestPipeline {
     detect.loadModels();
   }
 
+  public static Document serialize(String jsonString) {
+
+    return new Document(jsonString);
+  }
+
   public static void main(String[] args) {
 
     StreamsBuilder builder = new StreamsBuilder();
 
-    final Serde<DefaultId> defaultIdSerde = SerdesFactory.from(DefaultId.class);
-    final Serde<Invoice> invoiceSerde = SerdesFactory.from(Invoice.class);
-    final Serde<InvoicesAggregatedTable> totalsSerde = SerdesFactory.from(InvoicesAggregatedTable.class);
-
     KStream<String, String> docsStream = builder.stream(RAW_DOCS_TOPIC,
         Consumed.with(Serdes.String(), Serdes.String()));
 
+    final Serde<Document> docsSerde = SerdesFactory.from(Document.class);
+
     docsStream
-        .mapValues(raw_doc -> {
-          // transform to json
-          return raw_doc;
-        })
+        .mapValues(raw_doc -> serialize(raw_doc))
         .mapValues(jsonDoc -> {
-          LanguageResult result = detect.detect(jsonDoc);
+          LanguageResult result = detect.detect(jsonDoc.content);
+          jsonDoc.headers.put("LANG", result.getLanguage());
           return jsonDoc;
         })
-        .to(DOCS_WITH_LANGUAGE_TOPIC);
+        .to(DOCS_WITH_LANGUAGE_TOPIC, Produced.with(Serdes.String(), docsSerde));
 
     LanguageDetection profilesApp = new LanguageDetection();
     profilesApp.run(builder.build(), "language-detection");
