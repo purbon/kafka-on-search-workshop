@@ -10,6 +10,7 @@ import com.sun.tools.internal.xjc.Language;
 import org.apache.kafka.common.serialization.Serde;
 import org.apache.kafka.common.serialization.Serdes;
 import org.apache.kafka.streams.StreamsBuilder;
+import org.apache.kafka.streams.Topology;
 import org.apache.kafka.streams.kstream.Consumed;
 import org.apache.kafka.streams.kstream.Grouped;
 import org.apache.kafka.streams.kstream.KGroupedStream;
@@ -18,50 +19,61 @@ import org.apache.kafka.streams.kstream.KTable;
 import org.apache.kafka.streams.kstream.Materialized;
 import org.apache.kafka.streams.kstream.Produced;
 import org.apache.kafka.streams.kstream.ValueMapper;
+import org.apache.kafka.streams.processor.Processor;
+import org.apache.kafka.streams.processor.ProcessorContext;
 import org.apache.tika.Tika;
 import org.apache.tika.langdetect.OptimaizeLangDetector;
 import org.apache.tika.language.LanguageIdentifier;
 import org.apache.tika.language.detect.LanguageDetector;
 import org.apache.tika.language.detect.LanguageResult;
+import org.joda.time.DateTime;
+import org.joda.time.DateTimeZone;
+import org.joda.time.Instant;
 
-public class LanguageDetection extends IngestPipeline {
+public class TimestampNormalization extends IngestPipeline {
 
 
-  private static final String RAW_DOCS_TOPIC = "raw.docs";
-  private static final String DOCS_WITH_LANGUAGE_TOPIC = "docs";
-  private final Tika tika;
-  private static final OptimaizeLangDetector detect = new OptimaizeLangDetector();
+  static class JodaProcessor implements Processor<String, String> {
 
-  public LanguageDetection() {
-    tika = new Tika();
-    detect.loadModels();
+    private ProcessorContext context;
+    final Serde<Customer> customerSerde = SerdesFactory.from(Customer.class);
+
+    @Override
+    public void init(ProcessorContext context) {
+      this.context = context;
+    }
+
+    @Override
+    public void process(String key, String customerJson) {
+
+      Customer customer = customerSerde.deserializer().deserialize(key, customerJson.getBytes());
+
+      Instant instant = new Instant(customer.create_ts);
+      DateTime newCreateTs = instant.toDateTime(DateTimeZone.forID("Europe/Berlin"));
+      customer.create_ts = newCreateTs.toString();
+
+      context.forward(key, customer);
+
+    }
+
+    @Override
+    public void close() {
+      //EMPTY
+    }
   }
 
-  public static Document serialize(String jsonString) {
-
-    return new Document(jsonString);
-  }
 
   public static void main(String[] args) {
 
-    StreamsBuilder builder = new StreamsBuilder();
+    Topology topology = new Topology();
 
-    KStream<String, String> docsStream = builder.stream(RAW_DOCS_TOPIC,
-        Consumed.with(Serdes.String(), Serdes.String()));
+    topology
+        .addSource("customers", CUSTOMERS_TOPIC)
+        .addProcessor("joda-timestamp-corrector", JodaProcessor::new)
+        .addSink("customers.fixed", "customers.fixed");
 
-    final Serde<Document> docsSerde = SerdesFactory.from(Document.class);
-
-    docsStream
-        .mapValues(raw_doc -> serialize(raw_doc))
-        .mapValues(jsonDoc -> {
-          LanguageResult result = detect.detect(jsonDoc.content);
-          jsonDoc.headers.put("LANG", result.getLanguage());
-          return jsonDoc;
-        })
-        .to(DOCS_WITH_LANGUAGE_TOPIC, Produced.with(Serdes.String(), docsSerde));
-
-    LanguageDetection profilesApp = new LanguageDetection();
-    profilesApp.run(builder.build(), "language-detection");
+    TimestampNormalization profilesApp = new TimestampNormalization();
+    profilesApp.run(topology, "timestamp-action");
 
   }
 
