@@ -1,4 +1,4 @@
-![image](../images/confluent-logo-300-2.png)
+![image](images/confluent-logo-300-2.png)
 
 # Overview
 
@@ -6,14 +6,14 @@ This repo contains the bits used for a search engineering workshop based on Apac
 
 ----
 
-**You can follow the [step-by-step guide](workshop.adoc) workshop instructions here. These instructions are based on Docker**
+**You can follow the [step-by-step guide](workshop-guide.adoc) workshop instructions here. These instructions are based on Docker**
 
 ----
 
 
 # Prerequisites
 
-* If you are running the [step-by-step guide](workshop.adoc)
+* If you are running the [step-by-step guide](workshop-guide.adoc)
   * Docker
   * Docker Compose
   * 8GB+ RAM
