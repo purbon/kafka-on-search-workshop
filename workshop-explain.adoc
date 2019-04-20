@@ -987,10 +987,7 @@ Can you do that with KSQL ?
 
 There are a few options to do that, one of them might look like doing this steps:
 
-
-==== First option
-
-A simple option would be to only with the INVOICES_SRC_REKEY topic, this could look like:
+The first simple though would be to do it only with the _INVOICES_SRC_REKEY_ topic, this could look like:
 
 [source,sql]
 ----
@@ -1004,31 +1001,46 @@ Table created and running
 ksql>
 ----
 
+effectively this would do all the work for us, however what would happen if we aim to join this results with the CUSTOMERS table ? we might like to do that to enrich the incoming
+invoice data for example.
+
+To do that, we could run something like:
+
+[source,sql]
+----
 SELECT CUSTOMERS.EMAIL, INVOICE_TOTALS.InvoiceNo, INVOICE_TOTALS.total
 FROM CUSTOMERS INNER JOIN INVOICE_TOTALS ON CUSTOMERS.ID = INVOICE_TOTALS.CustomerID
 limit 5;
-
->SELECT CUSTOMERS.EMAIL, INVOICE_TOTALS.InvoiceNo, INVOICE_TOTALS.total
->FROM CUSTOMERS INNER JOIN INVOICE_TOTALS ON CUSTOMERS.ID = INVOICE_TOTALS.CustomerID
->limit 5;
 Source table (INVOICE_TOTALS) key column (KSQL_INTERNAL_COL_0|+|KSQL_INTERNAL_COL_1) is not the column used in the join criteria (CUSTOMERID).
 
-another option would be to perform the extended aggregation later on, but first join the data.
+ksql>
+----
 
-for example this would join the table Customers and the invoice_src_rekey stream:
+In this query we see how in a query with a group by the generated key column would be of this form _(KSQL_INTERNAL_COL_0|+|KSQL_INTERNAL_COL_1)_, making
+the join not possible with the _CUSTOMERS_ table.
 
+Another option would be to perform the aggregation later on, but first join the data. In the problem we're trying to solve here, this would mean to join
+the table Customers and the invoice_src_rekey stream:
+
+[source,sql]
+----
 SELECT CUSTOMERS.ID AS CustomerId, Email, InvoiceNo \
-FROM INVOICES_SRC_REKEY2 INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY2.CUSTOMERID \
-LIMIT 4;
+FROM INVOICES_SRC_REKEY INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY.CUSTOMERID \
+----
 
-we can materialise this stream as
+we can materialise this stream like this:
 
+[source,sql]
+----
 CREATE STREAM customer_invoices_stream AS
   SELECT CUSTOMERS.ID AS CustomerId, Email, InvoiceNo \
-  FROM INVOICES_SRC_REKEY2 INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY2.CUSTOMERID;
+  FROM INVOICES_SRC_REKEY INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY.CUSTOMERID;
+----
 
-and query it like this:
+Effectively this give us a stream of enriched invoice line data that we can query like this:
 
+[source,sql]
+----
 ksql> select * from customer_invoices_stream limit 4;
 1555742586578 | 14688 | 14688 | cvardyf@reverbnation.com | 536378
 1555742586579 | 14688 | 14688 | cvardyf@reverbnation.com | 536378
@@ -1037,12 +1049,23 @@ ksql> select * from customer_invoices_stream limit 4;
 Limit Reached
 Query terminated
 ksql>
+----
 
+To proceed with next steps we need to reset the offsets as we saw eaelir:
+
+[source,sql]
+----
 SET 'auto.offset.reset' = 'earliest';
+----
+
+With this pattern in mind we can now calculate our initial query, how much a use spend per invoice:
+
+[source,sql]
+----
 
 ksql> SELECT Email, InvoiceNo, sum(Quantity*UnitPrice) as total \
->FROM INVOICES_SRC_REKEY2 INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY2.CUSTOMERID \
->GROUP BY CUSTOMERS.Email, INVOICES_SRC_REKEY2.InvoiceNo
+>FROM INVOICES_SRC_REKEY2 INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY.CUSTOMERID \
+>GROUP BY CUSTOMERS.Email, INVOICES_SRC_REKEY.InvoiceNo
 >LIMIT 4;
 arookj@europa.eu | 536365 | 139.12
 arookj@europa.eu | 536366 | 22.200000000000003
@@ -1051,21 +1074,31 @@ arookj@europa.eu | 536373 | 259.86
 Limit Reached
 Query terminated
 ksql>
+----
+
+we can materialise this like this:
+
+[source,sql]
+----
 
 SET 'auto.offset.reset' = 'earliest';
 
 CREATE TABLE customer_totals_table AS
  SELECT Email, InvoiceNo, sum(Quantity*UnitPrice) as total \
- FROM INVOICES_SRC_REKEY2 INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY2.CUSTOMERID \
- GROUP BY CUSTOMERS.Email, INVOICES_SRC_REKEY2.InvoiceNo;
+ FROM INVOICES_SRC_REKEY INNER JOIN CUSTOMERS ON CUSTOMERS.ID = INVOICES_SRC_REKEY.CUSTOMERID \
+ GROUP BY CUSTOMERS.Email, INVOICES_SRC_REKEY.InvoiceNo;
 
  Message
 ---------------------------
  Table created and running
 ---------------------------
 
----
+----
 
+As we did earlier, this table can be query and used for processing as well:
+
+[source,sql]
+----
  ksql> select * from customer_totals_table limit 5;
  1555742586573 | arookj@europa.eu|+|536375 | arookj@europa.eu | 536375 | 259.86
  1555742586578 | arookj@europa.eu|+|536377 | arookj@europa.eu | 536377 | 22.200000000000003
@@ -1075,7 +1108,9 @@ CREATE TABLE customer_totals_table AS
  Limit Reached
  Query terminated
  ksql>
+----
 
+At this point we reached our objective, calculate, and materialise how much customers spend per invoice.
 
 === Filtering enriched STREAMS
 
