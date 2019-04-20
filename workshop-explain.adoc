@@ -1237,7 +1237,7 @@ or filtering customers by quantity of items bought:
 
 In this section we've seen the great power of stream composition and how you can build complex calculations on top of other streams.
 
-  ==  Stream data to Elasticsearch
+==  Stream data to Elasticsearch
 
   NOTE: This section assumes that you are familiar with the use of Kibana
 
