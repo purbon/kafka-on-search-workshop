@@ -64,7 +64,13 @@ docker-compose pull
 * Debian-based: `sudo apt install -y jq`
 * Windows: `¯\_(ツ)_/¯` -> send me a PR for these instructions on how to do it :)
 
-4. Linux only:
+4. You may find it useful to have installed an SQL editor (like MySQLWorkbench).
++
+In this workshop we'll use it to explore and manipulate our source of documents.
+* You can install https://www.mysql.com/products/workbench/[MySQLWorkbench], an open and free tool by the MySQL creators. This project
+is available for the main operating systems such as Mac, Linux and Windows.
+
+5. Linux only:
 +
 If you want to use the Elasticsearch part of the workshop then make sure the virtual memory mmap count limit is set appropriately.
 +
