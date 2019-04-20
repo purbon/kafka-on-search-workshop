@@ -1114,12 +1114,26 @@ At this point we reached our objective, calculate, and materialise how much cust
 
 === Filtering enriched STREAMS
 
+As we saw in the previous section, a nice future of KSQL and the Streams are flow of information that build on top of each other. In this section we're going to
+present how we can use them effectively for customer segmentation.
+
+As a source of this flow we are going to use a materialised view of the invoices, including customer information on it. This join would look liek this:
+
+[source,sql]
+----
 CREATE STREAM INVOICES_WITH_CUSTOMERS WITH (PARTITIONS=1) AS \
 SELECT  C.ID, C.CLUB_STATUS, C.EMAIL, \
         C.FIRST_NAME, C.LAST_NAME, I.InvoiceNo, \
         I.COUNTRY, I.STOCKCODE, I.QUANTITY, I.UNITPRICE
 FROM INVOICES_SRC_REKEY2 I INNER JOIN CUSTOMERS C ON C.ID = I.CUSTOMERID;
 
+ksql>
+----
+
+If you query/inspect the stream this is what you should see:
+
+[source,sql]
+----
 
 ksql> select * from INVOICES_WITH_CUSTOMERS limit 5;
 1555742586554 | 17850 | 17850 | gold | arookj@europa.eu | Anselma | Rook | 536365 | United Kingdom | 85123A | 6 | 2.55
@@ -1130,18 +1144,19 @@ ksql> select * from INVOICES_WITH_CUSTOMERS limit 5;
 Limit Reached
 Query terminated
 
-[source,sql]
+ksql>
 ----
-SELECT EMAIL, InvoiceNo, COUNTRY \
-FROM INVOICES_WITH_CUSTOMERS \
-WHERE CLUB_STATUS='bronze'
-limit 5;
+
+In this flow of data we can for example filter customers only with bronze status. This would look like this:
+
+[source,sql]
 ----
 
 ksql> SELECT EMAIL, InvoiceNo, COUNTRY \
->FROM INVOICES_WITH_CUSTOMERS \
->WHERE CLUB_STATUS='bronze'
->limit 5;
+FROM INVOICES_WITH_CUSTOMERS \
+WHERE CLUB_STATUS='bronze'
+limit 5;
+
 cvardyf@reverbnation.com | 536378 | United Kingdom
 cvardyf@reverbnation.com | 536378 | United Kingdom
 cvardyf@reverbnation.com | 536378 | United Kingdom
@@ -1149,13 +1164,17 @@ cvardyf@reverbnation.com | 536378 | United Kingdom
 cvardyf@reverbnation.com | 536378 | United Kingdom
 Limit Reached
 Query terminated
+
 ksql>
+----
 
-// customers per club status
+we can actively benefit of this to build different stages of near real time processing.
 
-select club_status, count(*)
-from INVOICES_WITH_CUSTOMERS
-group by club_status;
+For example to calculate how many customer per status are:
+
+
+[source,sql]
+----
 
 ksql> select club_status, count(*)
 >from INVOICES_WITH_CUSTOMERS
@@ -1164,24 +1183,29 @@ bronze | 19
 gold | 95
 ^CQuery terminated
 ksql>
+----
 
-// customer segmentation
+or to create a new stream of data were only customers with gold status will be send, we can do that like this:
 
-create stream GOLD_CUSTOMERS AS \
-  select *
-  from  INVOICES_WITH_CUSTOMERS
-  where CLUB_STATUS='gold';
+[source,sql]
+----
 
   ksql> create stream GOLD_CUSTOMERS AS \
-  >  select *
-  >  from  INVOICES_WITH_CUSTOMERS
-  >  where CLUB_STATUS='gold';
+    select *
+    from  INVOICES_WITH_CUSTOMERS
+    where CLUB_STATUS='gold';
 
    Message
   ----------------------------
    Stream created and running
   ----------------------------
   ksql>
+----
+
+this will effectively move invoice lines produced by gold customers to an specific line of procesiament, effectively being segmented based on a criteria. Remember this criteria could be anything, for example ratings to see happy or sad customers, etc.
+
+[source,sql]
+----
 
   ksql> select stockcode, sum(quantity) from gold_customers group by stockcode limit 10;
   22652 | 20
@@ -1197,15 +1221,21 @@ create stream GOLD_CUSTOMERS AS \
   Limit Reached
   Query terminated
 
-> filtering customers by quantity of items bought
+  ksql>
+----
 
+or filtering customers by quantity of items bought:
+
+[source,sql]
+----
   ksql> select email, sum(quantity) as count from GOLD_CUSTOMERS group by email having sum(quantity) > 100 limit 3;
   arookj@europa.eu | 474
   shackwellb@paginegialle.it | 544
-  ^CQuery terminated
+  Query terminated
   ksql>
+----
 
-
+In this section we've seen the great power of stream composition and how you can build complex calculations on top of other streams.
 
   ==  Stream data to Elasticsearch
 
