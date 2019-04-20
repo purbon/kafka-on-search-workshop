@@ -1302,3 +1302,7 @@ create stream GOLD_CUSTOMERS AS \
 
   * Feed event-driven applications. For example, notify the ops team if a VIP user leaves a poor review.
   * Stream to analytics platforms. For example, use Kafka Connect to stream the enriched data stream to Elasticsearch and visualise the real time with Kibana.
+
+== Greetings
+
+This work would not be possible without the help and guidance by Robin Moffatt <@rmoff> and my other colleagues work customers at Confluent Inc. Thanks you all for making this journey so wonderful and challenging.
