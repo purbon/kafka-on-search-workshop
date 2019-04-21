@@ -1239,13 +1239,11 @@ In this section we've seen the great power of stream composition and how you can
 
 ==  Stream data to Elasticsearch
 
-  NOTE: This section assumes that you are familiar with the use of Kibana
+NOTE: This section assumes that you are familiar with the use of Kibana
 
-  Using Kafka Connect you can stream data from a Kafka to one (or many) targets, including Elasticsearch, HDFS, S3, and so on.
+Using Kafka Connect you can stream data from a Kafka to one (or many) targets, including Elasticsearch, HDFS, S3, and so on. Here we'll see how to stream it to Elasticsearch for rapid visualisation and analysis.
 
-  Here we'll see how to stream it to Elasticsearch for rapid visualisation and analysis.
-
-  From a bash prompt, make sure that Elasticsearch and Kibana are running:
+From a bash prompt, make sure that Elasticsearch and Kibana are running:
 
   [source,bash]
   ----
@@ -1361,13 +1359,9 @@ In this section we've seen the great power of stream composition and how you can
 
   _If you want to preserve the state of all containers, run `docker-compose stop` instead._
 
-  == Next steps
+== Next steps
 
-  With the enriched and filtered data being populated into Kafka topics from KSQL you can use it to :
+With the enriched and filtered data being populated into Kafka topics from KSQL you can use it to :
 
-  * Feed event-driven applications. For example, notify the ops team if a VIP user leaves a poor review.
-  * Stream to analytics platforms. For example, use Kafka Connect to stream the enriched data stream to Elasticsearch and visualise the real time with Kibana.
-
-== Greetings
-
-This work would not be possible without the help and guidance by Robin Moffatt <@rmoff> and my other colleagues work customers at Confluent Inc. Thanks you all for making this journey so wonderful and challenging.
+* Feed event-driven applications. For example, notify the ops team if a VIP user leaves a poor review.
+* Stream to analytics platforms. For example, use Kafka Connect to stream the enriched data stream to Elasticsearch and visualise the real time with Kibana.
