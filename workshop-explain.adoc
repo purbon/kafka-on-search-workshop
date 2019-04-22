@@ -349,7 +349,7 @@ library for Apache Kafka, more details on the API's and DSL's can be found from:
 * https://docs.confluent.io/current/streams/developer-guide/dsl-api.html[Understanding the Kafka Streams DSL]
 * https://docs.confluent.io/current/streams/developer-guide/processor-api.html[Understanding the Kafka Streams Processor API]
 
-Inside the directory link:SearchEngineScaffold[SearchEngineScaffold] you can see an already prepared scaffold for this Kafka Streams exercises. At the end of the workshop the
+Inside the directory link:SearchEngAppScaffold[SearchEngAppScaffold] you can see an already prepared scaffold for this Kafka Streams exercises. At the end of the workshop the
 solutions to this exercises are going to be provided. Use it as a bootstrap to start implementing the next exercises.
 
 === Language Detection

@@ -21,14 +21,16 @@ You had been part of a session of this workshop, or just discovered over the int
 
 ----
 
-This repository include as well the [code samples](SearchEngApp/) containing a proposing solution for the Kafka Streams part.
+This repository include as well the [code samples](app/SearchEngApp/) containing a proposing solution for the Kafka Streams part.
 
 
 ### Interested to teach the workshop
 
 This workshop is usually delivered in sessions of 3h to 4h, but more time can be used so more in depth content and edge cases could be covered. A [timesheet](workshop-timesheet.md) proposal can be found as well within this repository.
 
- The workshop setup is based on [Docker](pre-requisites.adoc) as it helps delivering uniform infrastructure for the students, you can adapt this to your needs.
+The workshop setup is based on [Docker](pre-requisites.adoc) as it helps delivering uniform infrastructure for the students, you can adapt this to your needs.
+
+Included in this repository there is as well an app [scaffold](app/SearchEngAppScaffold/) that could be used to let the workshop attendees time to develop their own Kafka Streams solutions.
 
 ## Questions
 
