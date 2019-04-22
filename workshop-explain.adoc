@@ -887,7 +887,7 @@ Remember our customer profile task earlier, lets rebuild it again here.
 
  * Retry the command after a second or two (ref. https://github.com/confluentinc/ksql/issues/1394[#1394]).
  * Check that the topic's source stream is created:
- +
+
  [source,sql]
  ----
  ksql> SHOW STREAMS;
@@ -896,9 +896,11 @@ Remember our customer profile task earlier, lets rebuild it again here.
   CUSTOMERS_SRC_REKEY | CUSTOMERS_SRC_REKEY | AVRO
   [...]
  ----
+
  +
  * Verify that the source stream is processing messages by running `DESCRIBE EXTENDED CUSTOMERS_SRC_REKEY;`. Under the heading `Local runtime statistics` you should see:
  +
+
  [source,sql]
  ----
  Local runtime statistics
@@ -906,15 +908,18 @@ Remember our customer profile task earlier, lets rebuild it again here.
  messages-per-sec:      0.10   total-messages:        10     last-message: 6/28/18 6:23:54 PM UTC
   failed-messages:         0 failed-messages-per-sec:         0      last-failed:       n/a
  ----
+
  +
  ** If no 'messages-per-sec' is shown, the next step is to verify that you ran `SET 'auto.offset.reset' = 'earliest';` earlier. You can run it again to be certain. If it says `Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest'` then the `null` shows that it wasn't previously set.
  ** If this was the case, then you need to drop and recreate the stream in order to process the customer data:
  +
+
  [source,sql]
  ----
  TERMINATE QUERY CSAS_CUSTOMERS_SRC_REKEY_0;
  DROP STREAM CUSTOMERS_SRC_REKEY;
  ----
+
  +
  Then re-run the `CREATE STREAM CUSTOMERS_SRC_REKEY[…]` from above. Use `SHOW QUERIES;` to list the queries running if the name differs from that shown in the `TERMINATE` statement.
  ====
