@@ -767,40 +767,40 @@ Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest
 
 Remember our customer profile task earlier, lets rebuild it again here.
 
- === Prepare the Customer data
+=== Prepare the Customer data
 
- We're going to model the Customers topic as a **KSQL Table**. This is a semantic construct that enables us to work with the data in the topic as key/value pairs, with a single value for each key. You can read more about https://docs.confluent.io/current/streams/concepts.html#duality-of-streams-and-tables[this here].
+We're going to model the Customers topic as a **KSQL Table**. This is a semantic construct that enables us to work with the data in the topic as key/value pairs, with a single value for each key. You can read more about https://docs.confluent.io/current/streams/concepts.html#duality-of-streams-and-tables[this here].
 
- ==== Inspect Customers Data
+==== Inspect Customers Data
 
- Let's check the data first, using the very handy `PRINT` command:
+Let's check the data first, using the very handy `PRINT` command:
 
- `PRINT 'asgard.demo.CUSTOMERS' FROM BEGINNING;`
+`PRINT 'asgard.demo.CUSTOMERS' FROM BEGINNING;`
 
- [source,sql]
- ----
+[source,sql]
+----
  ksql> PRINT 'asgard.demo.CUSTOMERS' FROM BEGINNING;
  Format:JSON
  {"ROWTIME":1529492614185,"ROWKEY":"null","id":1,"first_name":"Annemarie","last_name":"Arent","email":"aarent0@cpanel.net","gender":"Female","club_status":"platinum","comments":"Organized web-enabled ability"}
- ----
+----
 
- Press Ctrl-C to cancel and return to the KSQL prompt. This may take up to a minute to cancel (https://github.com/confluentinc/ksql/issues/1759[#1759]).
+Press Ctrl-C to cancel and return to the KSQL prompt. This may take up to a minute to cancel (https://github.com/confluentinc/ksql/issues/1759[#1759]).
 
- ==== Re-Key Customers Topic
+==== Re-Key Customers Topic
 
- When we join the customer data to the ratings, the customer Kafka messages _must be keyed on the field on which we are performing the join_. If this is not the case the join will fail and we'll get `NULL` values in the result.
+When we join the customer data to the ratings, the customer Kafka messages _must be keyed on the field on which we are performing the join_. If this is not the case the join will fail and we'll get `NULL` values in the result.
 
- Our source customer messages are not currently keyed correctly. Depending on how you chose to populate the Customer topic earlier:
+Our source customer messages are not currently keyed correctly. Depending on how you chose to populate the Customer topic earlier:
 
- * From Debezium, the messages are actually keyed using the Primary Key of the source table, but using a key serialisation that KSQL does not support - and thus in effect is not useful as a key in KSQL at all
- * From a manual input of JSON messages, the key is null (observe the `"ROWKEY":"null"` in the `PRINT` output above)
+* From Debezium, the messages are actually keyed using the Primary Key of the source table, but using a key serialisation that KSQL does not support - and thus in effect is not useful as a key in KSQL at all
+* From a manual input of JSON messages, the key is null (observe the `"ROWKEY":"null"` in the `PRINT` output above)
 
- To re-key a topic in Kafka we can use KSQL!
+To re-key a topic in Kafka we can use KSQL!
 
- First we will register the customer topic. Note that because it is in JSON format we need to declare all of the columns and their datatypes:
+First we will register the customer topic. Note that because it is in JSON format we need to declare all of the columns and their datatypes:
 
- [source,sql]
- ----
+[source,sql]
+----
  ksql> CREATE STREAM CUSTOMERS_SRC (id BIGINT, first_name VARCHAR, last_name VARCHAR, email VARCHAR, gender VARCHAR, club_status VARCHAR, comments VARCHAR) WITH (KAFKA_TOPIC='asgard.demo.CUSTOMERS', VALUE_FORMAT='JSON');
 
   Message
@@ -808,19 +808,19 @@ Remember our customer profile task earlier, lets rebuild it again here.
   Stream created
  ----------------
  ksql>
- ----
+----
 
- With the stream registered, we can now re-key the topic, using a KSQL `CSAS` and the `PARTITION BY` clause. Note that we're taking the opportunity to re-serialise the data into Avro format. We're also changing the number of partitions from that of the source (4) to match that of the `ratings` topic (1):
+With the stream registered, we can now re-key the topic, using a KSQL `CSAS` and the `PARTITION BY` clause. Note that we're taking the opportunity to re-serialise the data into Avro format. We're also changing the number of partitions from that of the source (4) to match that of the `ratings` topic (1):
 
- [IMPORTANT]
- ====
- By changing the partition key, data may move between partitions, and thus its ordering change. Kafka's strict ordering guarantee only applies within a partition.
+[IMPORTANT]
+====
+By changing the partition key, data may move between partitions, and thus its ordering change. Kafka's strict ordering guarantee only applies within a partition.
 
- In our example this doesn't matter, but be aware of this if you rely on this re-keying technique in other KSQL queries.
- ====
+In our example this doesn't matter, but be aware of this if you rely on this re-keying technique in other KSQL queries.
+====
 
- [source,sql]
- ----
+[source,sql]
+----
  ksql> CREATE STREAM CUSTOMERS_SRC_REKEY \
          WITH (PARTITIONS=1, VALUE_FORMAT='AVRO') AS \
          SELECT * FROM CUSTOMERS_SRC PARTITION BY ID;
@@ -830,32 +830,32 @@ Remember our customer profile task earlier, lets rebuild it again here.
   Stream created and running
  ----------------------------
  ksql>
- ----
+----
 
- [NOTE]
- ====
- *Optional*
+[NOTE]
+====
+*Optional*
 
- To inspect the key for a given stream/table, use the `ROWKEY` system column.
+To inspect the key for a given stream/table, use the `ROWKEY` system column.
 
- Here we compare it to the join column (`ID`); for the join to succeed they must be equal.
+Here we compare it to the join column (`ID`); for the join to succeed they must be equal.
 
- In the source stream, the `ROWKEY` is null (or `Struct{id=x}` if streamed from Debezium) because the key of the underlying Kafka messages is null:
+In the source stream, the `ROWKEY` is null (or `Struct{id=x}` if streamed from Debezium) because the key of the underlying Kafka messages is null:
 
- [source,sql]
- ----
+[source,sql]
+----
  ksql> SELECT C.ROWKEY, C.ID FROM CUSTOMERS_SRC C LIMIT 3;
  null | 1
  null | 2
  null | 3
  Limit Reached
  Query terminated
- ----
+----
 
- In the re-keyed stream the `ROWKEY` and `ID` are equal, which is essential for a successful JOIN operation in KSQL.
+In the re-keyed stream the `ROWKEY` and `ID` are equal, which is essential for a successful JOIN operation in KSQL.
 
- [source,sql]
- ----
+[source,sql]
+----
  ksql> SELECT C.ROWKEY, C.ID FROM CUSTOMERS_SRC_REKEY C LIMIT 3;
  1 | 1
  2 | 2
@@ -863,15 +863,15 @@ Remember our customer profile task earlier, lets rebuild it again here.
  Limit Reached
  Query terminated
  ksql>
- ----
- ====
+----
+====
 
- ==== Create Customers Table
+==== Create Customers Table
 
- Now, create a `TABLE` over the new re-keyed Kafka topic. Why's it a table? Because *for each key* (user id), we want to know *its current value* (name, status, etc)
+Now, create a `TABLE` over the new re-keyed Kafka topic. Why's it a table? Because *for each key* (user id), we want to know *its current value* (name, status, etc)
 
- [source,sql]
- ----
+[source,sql]
+----
  ksql> CREATE TABLE CUSTOMERS WITH (KAFKA_TOPIC='CUSTOMERS_SRC_REKEY', VALUE_FORMAT ='AVRO', KEY='ID');
 
   Message
@@ -879,61 +879,56 @@ Remember our customer profile task earlier, lets rebuild it again here.
   Table created
  ---------------
  ksql>
- ----
+----
 
- [NOTE]
- ====
+[NOTE]
+====
  _n.b. if you get the error `Unable to verify the AVRO schema is compatible with KSQL` then_ :
 
  * Retry the command after a second or two (ref. https://github.com/confluentinc/ksql/issues/1394[#1394]).
  * Check that the topic's source stream is created:
 
- [source,sql]
- ----
- ksql> SHOW STREAMS;
-  Stream Name         | Kafka Topic         | Format
- ----------------------------------------------------
+[source,sql]
+----
+ksql> SHOW STREAMS;
+Stream Name         | Kafka Topic         | Format
+----------------------------------------------------
   CUSTOMERS_SRC_REKEY | CUSTOMERS_SRC_REKEY | AVRO
   [...]
- ----
-
- +
- * Verify that the source stream is processing messages by running `DESCRIBE EXTENDED CUSTOMERS_SRC_REKEY;`. Under the heading `Local runtime statistics` you should see:
- +
-
- [source,sql]
- ----
+----
++
+* Verify that the source stream is processing messages by running `DESCRIBE EXTENDED CUSTOMERS_SRC_REKEY;`. Under the heading `Local runtime statistics` you should see:
++
+[source,sql]
+----
  Local runtime statistics
  ------------------------
  messages-per-sec:      0.10   total-messages:        10     last-message: 6/28/18 6:23:54 PM UTC
   failed-messages:         0 failed-messages-per-sec:         0      last-failed:       n/a
- ----
-
- +
- ** If no 'messages-per-sec' is shown, the next step is to verify that you ran `SET 'auto.offset.reset' = 'earliest';` earlier. You can run it again to be certain. If it says `Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest'` then the `null` shows that it wasn't previously set.
- ** If this was the case, then you need to drop and recreate the stream in order to process the customer data:
- +
-
- [source,sql]
- ----
+----
++
+** If no 'messages-per-sec' is shown, the next step is to verify that you ran `SET 'auto.offset.reset' = 'earliest';` earlier. You can run it again to be certain. If it says `Successfully changed local property 'auto.offset.reset' from 'null' to 'earliest'` then the `null` shows that it wasn't previously set.
+** If this was the case, then you need to drop and recreate the stream in order to process the customer data:
++
+[source,sql]
+----
  TERMINATE QUERY CSAS_CUSTOMERS_SRC_REKEY_0;
  DROP STREAM CUSTOMERS_SRC_REKEY;
- ----
+----
++
+Then re-run the `CREATE STREAM CUSTOMERS_SRC_REKEY[…]` from above. Use `SHOW QUERIES;` to list the queries running if the name differs from that shown in the `TERMINATE` statement.
+====
 
- +
- Then re-run the `CREATE STREAM CUSTOMERS_SRC_REKEY[…]` from above. Use `SHOW QUERIES;` to list the queries running if the name differs from that shown in the `TERMINATE` statement.
- ====
+Query the table:
 
- Query the table:
-
- [source,sql]
- ----
- ksql> SELECT ID, FIRST_NAME, LAST_NAME, EMAIL, CLUB_STATUS FROM CUSTOMERS;
+[source,sql]
+----
+ksql> SELECT ID, FIRST_NAME, LAST_NAME, EMAIL, CLUB_STATUS FROM CUSTOMERS;
  1 | Annemarie | Arent | aarent0@cpanel.net | platinum
  2 | Merilyn | Doughartie | mdoughartie1@dedecms.com | platinum
- ----
+----
 
- === Prepare the invoice data
+=== Prepare the invoice data
 
 Now we need as well to prepare the invoice data, we can do that in a similar way as we did for the _CUSTOMERS_, first step is to parse the incoming topic _asgard.demo.invoices_
 and register an incoming stream, for this we need to:
@@ -960,8 +955,8 @@ one of them co-partition.
 
 The command to do that should resemble something like this:
 
- [source,sql]
- ----
+[source,sql]
+----
  ksql> CREATE STREAM INVOICES_SRC_REKEY \
          WITH (PARTITIONS=1, VALUE_FORMAT='AVRO') AS \
          SELECT * FROM INVOICES_SRC PARTITION BY ID;
@@ -971,7 +966,7 @@ The command to do that should resemble something like this:
   Stream created and running
  ----------------------------
  ksql>
- ----
+----
 
 At that time all necessary preparation is done.
 
