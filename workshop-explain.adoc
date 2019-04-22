@@ -1252,7 +1252,7 @@ From a bash prompt, make sure that Elasticsearch and Kibana are running:
   kibana                             /usr/local/bin/kibana-docker     Up      0.0.0.0:5601->5601/tcp
 ----
 
-  Create a dynamic mapping in Elasticsearch so that the timestamp of source data is correctly detected:
+Create a dynamic mapping in Elasticsearch so that the timestamp of source data is correctly detected:
 
 [source,bash]
 ----
@@ -1283,7 +1283,7 @@ Create a connector to stream `CUSTOMERS` to Elasticsearch:
       }'
 ----
 
-  Create a connector to stream `customers-profiles` to Elasticsearch:
+Create a connector to stream `customers-profiles` to Elasticsearch:
 
 [source,bash]
 ----
@@ -1305,7 +1305,7 @@ Create a connector to stream `CUSTOMERS` to Elasticsearch:
             "value.converter.schemas.enable": false
          }
       }'
- ----
+----
 
 _Note that the above sets `"key.ignore": "false"` , and thus aggregates will be updated in-place._
 
