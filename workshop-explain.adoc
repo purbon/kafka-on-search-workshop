@@ -8,6 +8,10 @@ v0.1, May 3, 2019
 
 == Introduction
 
+This is what we're going to build together today:
+
+
+
 == Prerequisites
 
 IMPORTANT: These **MUST** be completed before the workshop!
