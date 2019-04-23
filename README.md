@@ -4,7 +4,7 @@
 
 This repo contains the bits used for a search engineering workshop based on Apache Kafka, Kafka Connect and Kafka Streams (and might be KSQL?)
 
-image::images/SearchEngineeringArchitecture.png[ArchitectureOfASearchEngineer]
+![image](images/SearchEngineeringArchitecture.png)
 
 ## Prerequisites
 
