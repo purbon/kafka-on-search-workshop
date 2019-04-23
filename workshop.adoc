@@ -353,7 +353,7 @@ library for Apache Kafka, more details on the API's and DSL's can be found from:
 * https://docs.confluent.io/current/streams/developer-guide/dsl-api.html[Understanding the Kafka Streams DSL]
 * https://docs.confluent.io/current/streams/developer-guide/processor-api.html[Understanding the Kafka Streams Processor API]
 
-Inside the directory link:SearchEngAppScaffold[SearchEngAppScaffold] you can see an already prepared scaffold for this Kafka Streams exercises. At the end of the workshop the
+Inside the directory link:SearchEngApp-Scaffold[SearchEngApp-Scaffold] you can see an already prepared scaffold for this Kafka Streams exercises. At the end of the workshop the
 solutions to this exercises are going to be provided. Use it as a bootstrap to start implementing the next exercises.
 
 === Language Detection
@@ -378,64 +378,7 @@ In this exercise you should write a simple Kafka Streams job that:
 * Detect and compliment the incoming JSON document the language it has been written.
 * Store the new document in a target topic.
 
-==== A solution
-
-There are more than one possible solutions for this task as you could write the job using the Streams DSL or by using the Transformer API.
-
-Using the Streams DSL the job should look something like this:
-
-[source,java]
-----
-docsStream
-    .mapValues(raw_doc -> serialize(raw_doc))
-    .mapValues(jsonDoc -> {
-      LanguageResult result = detect.detect(jsonDoc.content);
-      jsonDoc.headers.put("LANG", result.getLanguage());
-      return jsonDoc;
-    })
-    .to(DOCS_WITH_LANGUAGE_TOPIC, Produced.with(Serdes.String(), docsSerde));
-----
-
-were each incoming raw document is read, serialized and then map again to include the detected language. Another option to solve this problem with the
-same outcome will be using the Transformers API. This approach would look something like this:
-
-[source,java]
-----
-docsStream
-     .mapValues(raw_doc -> new Document(raw_doc))
-     .transform(LanguageDetectProcessor::new)
-     .to(DOCS_WITH_LANGUAGE_TOPIC, Produced.with(Serdes.String(), docsSerde));
-----
-
-[source,java]
-----
-public class LanguageDetectProcessor implements Transformer<String, Document, KeyValue<String, Document>> {
-
-  private Tika tika;
-  private static final OptimaizeLangDetector detect = new OptimaizeLangDetector();
-  private ProcessorContext context;
-
-  @Override
-  public void init(ProcessorContext context) {
-    tika = new Tika();
-    this.context = context;
-  }
-
-  @Override
-  public KeyValue<String, Document> transform(String key, Document doc) {
-    LanguageResult result = detect.detect(doc.content);
-    doc.headers.put("LANG", result.getLanguage());
-    return new KeyValue(key, doc);
-  }
-
-  @Override
-  public void close() {
-    //EMPTY
-  }
-}
-----
-
-More details can be found in the full solution delivered at the end of the workshop.
+_Note:_ A proposed solution will delivered at the end of the workshop.
 
 === Timestamp Normalisation
 
@@ -457,63 +400,8 @@ can make aggregations and other data manipulation skewed, were teams running the
 
  We ask you to do this by using the Processor API.
 
-==== A solution
+ _Note:_ A proposed solution will delivered at the end of the workshop.
 
-There are more than one solution possible for this exercise, one of them could look like this:
-
-[source,java]
-----
-public class TimestampNormalization extends IngestPipeline {
-
-
-  static class JodaProcessor implements Processor<String, String> {
-
-    private ProcessorContext context;
-    final Serde<Customer> customerSerde = SerdesFactory.from(Customer.class);
-
-    @Override
-    public void init(ProcessorContext context) {
-      this.context = context;
-    }
-
-    @Override
-    public void process(String key, String customerJson) {
-
-      Customer customer = customerSerde.deserializer().deserialize(key, customerJson.getBytes());
-
-      Instant instant = new Instant(customer.create_ts);
-      DateTime newCreateTs = instant.toDateTime(DateTimeZone.forID("Europe/Berlin"));
-      customer.create_ts = newCreateTs.toString();
-
-      context.forward(key, customer);
-
-    }
-
-    @Override
-    public void close() {
-      //EMPTY
-    }
-  }
-
-
-  public static void main(String[] args) {
-
-    Topology topology = new Topology();
-
-    topology
-        .addSource("customers", CUSTOMERS_TOPIC)
-        .addProcessor("joda-timestamp-corrector", JodaProcessor::new)
-        .addSink("customers.fixed", "customers.fixed");
-
-    TimestampNormalization profilesApp = new TimestampNormalization();
-    profilesApp.run(topology, "timestamp-action");
-
-  }
-
-}
-----
-
-NOTE: This solution only process the _create_ts timestamp. You should as well proceed the other timestamp.
 
 === Calculate customers per Genre
 
@@ -529,24 +417,8 @@ In this exercise we ask you to build a Kafka Streams app that:
 * Calculate how many customers aggregated by genre (live query).
 * Write the outcome to a target topic.
 
-==== A solution
+_Note:_ A proposed solution will delivered at the end of the workshop.
 
-As with the other exercises, more than one solution is possible, but on of them could look like this:
-
-[source,java]
-----
-    final Serde<Customer> customerSerde = Serdes.serdeFrom(customerSerializer, customerDeserializer);
-
-    KStream<String, Customer> customersKStream = builder
-        .stream(IngestPipeline.CUSTOMERS_TOPIC,
-            Consumed.with(Serdes.String(), customerSerde));
-
-    customersKStream
-        .groupBy((aString, customer) -> customer.gender, Grouped.with(Serdes.String(), customerSerde))
-        .count()
-        .toStream()
-        .to(IngestPipeline.CONSUMERS_PER_GENDER_TOPIC, Produced.with(Serdes.String(), Serdes.Long()));
-----
 
 === Building customer profiles
 
@@ -577,78 +449,7 @@ from invoices
 group by InvoiceNo;
 ----
 
-==== A solution
-
-As with the other exercises there could be different solutions to this task, but one could look like:
-
-[source,java]
-----
-public class CustomerProfilesBuilder extends IngestPipeline {
-
-
-  public CustomerProfilesBuilder() {
-
-  }
-
-  public static void main(String[] args) {
-
-    StreamsBuilder builder = new StreamsBuilder();
-
-    final Serde<DefaultId> defaultIdSerde = SerdesFactory.from(DefaultId.class);
-    final Serde<Invoice> invoiceSerde = SerdesFactory.from(Invoice.class);
-    final Serde<InvoicesAggregatedTable> totalsSerde = SerdesFactory.from(InvoicesAggregatedTable.class);
-
-    // Stream of invoices
-    KStream<DefaultId, Invoice> invoicesKStream = builder.stream(INVOICES_TOPIC,
-        Consumed.with(defaultIdSerde, invoiceSerde));
-
-    // group invoices by invoiceNo
-    KGroupedStream<DefaultId, Invoice> groupedInvoices = invoicesKStream
-        .groupBy((key, invoice) -> {
-          try {
-            return new DefaultId(invoice.CustomerID);
-          } catch (NullPointerException ex) {
-            return new DefaultId("-1");
-          }
-            },
-            Grouped.with(defaultIdSerde, invoiceSerde));
-
-    // Sum the total of the invoices and output a table of the form
-    // CustomerId - List of [InvoiceNo - InvoiceTotal]
-    KTable<DefaultId, InvoicesAggregatedTable> table = groupedInvoices
-        .aggregate(() -> new InvoicesAggregatedTable(),
-            (key, invoice, data) -> {
-              float totalLine = Float.parseFloat(invoice.Quantity) * Float.parseFloat(invoice.UnitPrice);
-              data.accountInvoice(invoice.InvoiceNo, totalLine);
-              return data;
-            },
-            Materialized.with(defaultIdSerde, totalsSerde));
-
-    // output (UserId, List<(InvoiceNo, Float)>)
-    // [KTABLE-TOSTREAM-0000000007]: 14849, [ (536463 -> 17.400002) (536466 -> 42.9) (536460 -> 295.53998)]
-
-  final Serde<Customer> customerSerde = SerdesFactory.from(Customer.class);
-
-  // pull the customer tables
-    KTable<DefaultId, Customer> customersTable = builder
-        .table(CUSTOMERS_TOPIC, Consumed.with(defaultIdSerde, customerSerde));
-
-    // KTable - KTable join customer with aggregated invoice totals
-    customersTable
-        .join(table, (customer, invoices) -> {
-          customer.addInvoices(invoices);
-          return customer;
-        }, Materialized.with(defaultIdSerde, customerSerde))
-        .toStream()
-        .to(CUSTOMERS_PROFILES_TOPIC, Produced.with(defaultIdSerde, customerSerde));
-
-    CustomerProfilesBuilder profilesApp = new CustomerProfilesBuilder();
-    profilesApp.run(builder.build(), "customer-profile-builder");
-
-  }
-
-}
-----
+_Note:_ A proposed solution will delivered at the end of the workshop.
 
 == KSQL
 
