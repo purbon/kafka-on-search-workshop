@@ -19,11 +19,11 @@ You had been part of a session of this workshop, or just discovered over the int
 
 ----
 
-**You can follow the [step-by-step guide](workshop-explain.adoc) workshop instructions here. These instructions are based on Docker**
+**You can follow the [step-by-step guide](workshop.adoc) workshop instructions here. These instructions are based on Docker**
 
 ----
 
-This repository include as well the [code samples](app/SearchEngApp/) containing a proposing solution for the Kafka Streams part.
+This repository include as well an scaffold app [](SearchEngApp-Scaffold/) containing a proposing skeleton for the Kafka Streams part. A full solution is available at https://github.com/purbon/kafka-on-search-workshop-answers or at demand.
 
 
 ### Interested to teach the workshop
@@ -32,7 +32,9 @@ This workshop is usually delivered in sessions of 3h to 4h, but more time can be
 
 The workshop setup is based on [Docker](pre-requisites.adoc) as it helps delivering uniform infrastructure for the students, you can adapt this to your needs.
 
-Included in this repository there is as well an app [scaffold](app/SearchEngAppScaffold/) that could be used to let the workshop attendees time to develop their own Kafka Streams solutions.
+Included in this repository there is as well an app [scaffold](SearchEngApp-Scaffold/) that could be used to let the workshop attendees time to develop their own Kafka Streams solutions.
+
+Full proposed solutions for the exercises in this workshop are provided in https://github.com/purbon/kafka-on-search-workshop-answers or at demand.
 
 ## Questions
 
